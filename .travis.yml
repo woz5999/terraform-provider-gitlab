@@ -44,7 +44,7 @@ install:
 - bash scripts/start-gitlab.sh
 
 script:
-- make $MAKE_TARGET
+- travis_wait make $MAKE_TARGET
 
 branches:
   only:

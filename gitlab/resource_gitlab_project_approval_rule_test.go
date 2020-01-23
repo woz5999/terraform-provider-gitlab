@@ -329,24 +329,24 @@ func TestAccGitLabProjectApprovalRule_basic(t *testing.T) {
 	updateExpected.ApprovalsRequired = 1
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testGitLabLicensePreCheck(t)
-		},
+		Providers:    testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
 		CheckDestroy: testChecks.Destroy,
 		Steps: []resource.TestStep{
 			{ // Create Rule
-				Config: testConfig.createConfig("", 3),
-				Check:  testChecks.Aggregate(testConfig.getResourceName(), defaultRule),
+				SkipFunc: isRunningInCE,
+				Config:   testConfig.createConfig("", 3),
+				Check:    testChecks.Aggregate(testConfig.getResourceName(), defaultRule),
 			},
 			{ // Update Rule
-				Config: testConfig.createConfig("test", 1),
-				Check:  testChecks.Aggregate(testConfig.getResourceName(), updateExpected),
+				SkipFunc: isRunningInCE,
+				Config:   testConfig.createConfig("test", 1),
+				Check:    testChecks.Aggregate(testConfig.getResourceName(), updateExpected),
 			},
 			{ // Reset Rule
-				Config: testConfig.createConfig("", 3),
-				Check:  testChecks.Aggregate(testConfig.getResourceName(), defaultRule),
+				SkipFunc: isRunningInCE,
+				Config:   testConfig.createConfig("", 3),
+				Check:    testChecks.Aggregate(testConfig.getResourceName(), defaultRule),
 			},
 		},
 	})
@@ -365,25 +365,25 @@ func TestAccGitLabProjectApprovalRule_willError(t *testing.T) {
 	willError.Name = testConfig.getName("notthename")
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testGitLabLicensePreCheck(t)
-		},
+		Providers:    testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
 		CheckDestroy: testAccCheckGitlabProjectDestroy,
 		Steps: []resource.TestStep{
 			{ // Create rule
-				Config: testConfig.createConfig("", 3),
-				Check:  testChecks.Aggregate(testConfig.getResourceName(), defaultRule),
+				SkipFunc: isRunningInCE,
+				Config:   testConfig.createConfig("", 3),
+				Check:    testChecks.Aggregate(testConfig.getResourceName(), defaultRule),
 			},
 			{ // Verify that name is set by passing bad values.
+				SkipFunc:    isRunningInCE,
 				Config:      testConfig.createConfig("", 3),
 				Check:       testChecks.Aggregate(testConfig.getResourceName(), willError),
 				ExpectError: regexp.MustCompile(`'name'\sexpected\s.+notthename.+\sgot`),
 			},
 			{ // Reset
-				Config: testConfig.createConfig("", 3),
-				Check:  testChecks.Aggregate(testConfig.getResourceName(), defaultRule),
+				SkipFunc: isRunningInCE,
+				Config:   testConfig.createConfig("", 3),
+				Check:    testChecks.Aggregate(testConfig.getResourceName(), defaultRule),
 			},
 		},
 	})
@@ -396,17 +396,16 @@ func TestAccGitLabProjectApprovalRule_import(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testGitLabLicensePreCheck(t)
-		},
+		Providers:    testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
 		CheckDestroy: testAccCheckGitlabProjectDestroy,
 		Steps: []resource.TestStep{
 			{ // Create Rule
-				Config: testConfig.createConfig("", 3),
+				SkipFunc: isRunningInCE,
+				Config:   testConfig.createConfig("", 3),
 			},
 			{ // Verify Import
+				SkipFunc:          isRunningInCE,
 				ResourceName:      testConfig.getResourceName(),
 				ImportState:       true,
 				ImportStateVerify: true,
