@@ -12,6 +12,7 @@ import (
 
 func TestAccGitlabProjectVariable_basic(t *testing.T) {
 	var projectVariable gitlab.ProjectVariable
+	var scopedProjectVariable gitlab.ProjectVariable
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -28,6 +29,12 @@ func TestAccGitlabProjectVariable_basic(t *testing.T) {
 						Key:   fmt.Sprintf("key_%s", rString),
 						Value: fmt.Sprintf("value-%s", rString),
 					}),
+					testAccCheckGitlabProjectVariableExists("gitlab_project_variable.bar", &scopedProjectVariable),
+					testAccCheckGitlabProjectVariableAttributes(&scopedProjectVariable, &testAccGitlabProjectVariableExpectedAttributes{
+						Key:              fmt.Sprintf("key_%s", rString),
+						Value:            fmt.Sprintf("scoped-value-%s", rString),
+						EnvironmentScope: fmt.Sprintf("scope-%s", rString),
+					}),
 				),
 			},
 			// Update the project variable to toggle all the values to their inverse
@@ -40,6 +47,13 @@ func TestAccGitlabProjectVariable_basic(t *testing.T) {
 						Value:     fmt.Sprintf("value-inverse-%s", rString),
 						Protected: true,
 					}),
+					testAccCheckGitlabProjectVariableExists("gitlab_project_variable.bar", &scopedProjectVariable),
+					testAccCheckGitlabProjectVariableAttributes(&scopedProjectVariable, &testAccGitlabProjectVariableExpectedAttributes{
+						Key:              fmt.Sprintf("key_%s", rString),
+						Value:            fmt.Sprintf("scoped-value-inverse-%s", rString),
+						Protected:        true,
+						EnvironmentScope: fmt.Sprintf("scope-%s/*", rString),
+					}),
 				),
 			},
 			// Update the project variable to toggle the options back
@@ -51,6 +65,13 @@ func TestAccGitlabProjectVariable_basic(t *testing.T) {
 						Key:       fmt.Sprintf("key_%s", rString),
 						Value:     fmt.Sprintf("value-%s", rString),
 						Protected: false,
+					}),
+					testAccCheckGitlabProjectVariableExists("gitlab_project_variable.bar", &scopedProjectVariable),
+					testAccCheckGitlabProjectVariableAttributes(&scopedProjectVariable, &testAccGitlabProjectVariableExpectedAttributes{
+						Key:              fmt.Sprintf("key_%s", rString),
+						Value:            fmt.Sprintf("scoped-value-%s", rString),
+						Protected:        false,
+						EnvironmentScope: fmt.Sprintf("scope-%s", rString),
 					}),
 				),
 			},
@@ -85,9 +106,10 @@ func testAccCheckGitlabProjectVariableExists(n string, projectVariable *gitlab.P
 }
 
 type testAccGitlabProjectVariableExpectedAttributes struct {
-	Key       string
-	Value     string
-	Protected bool
+	Key              string
+	Value            string
+	Protected        bool
+	EnvironmentScope string
 }
 
 func testAccCheckGitlabProjectVariableAttributes(variable *gitlab.ProjectVariable, want *testAccGitlabProjectVariableExpectedAttributes) resource.TestCheckFunc {
@@ -147,7 +169,15 @@ resource "gitlab_project_variable" "foo" {
   value = "value-%s"
   variable_type = "env_var"
 }
-	`, rString, rString, rString)
+
+resource "gitlab_project_variable" "bar" {
+  project = "${gitlab_project.foo.id}"
+  key = "key_%s"
+  value = "scoped-value-%s"
+	variable_type = "env_var"
+	environment_scope = "scope-%s"
+}
+	`, rString, rString, rString, rString, rString, rString)
 }
 
 func testAccGitlabProjectVariableUpdateConfig(rString string) string {
@@ -167,5 +197,13 @@ resource "gitlab_project_variable" "foo" {
   value = "value-inverse-%s"
   protected = true
 }
-	`, rString, rString, rString)
+
+resource "gitlab_project_variable" "bar" {
+  project = "${gitlab_project.foo.id}"
+  key = "key_%s"
+  value = "scoped-value-inverse-%s"
+  protected = true
+	environment_scope = "scope-%s/*"
+}
+	`, rString, rString, rString, rString, rString, rString)
 }

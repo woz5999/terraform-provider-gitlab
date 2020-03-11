@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -99,10 +100,21 @@ func resourceGitlabProjectVariableRead(d *schema.ResourceData, meta interface{})
 	}
 
 	log.Printf("[DEBUG] read gitlab project variable %s/%s", project, key)
-
-	v, _, err := client.ProjectVariables.GetVariable(project, key)
+	vars, _, err := client.ProjectVariables.ListVariables(project, &gitlab.ListProjectVariablesOptions{})
 	if err != nil {
 		return err
+	}
+
+	var v *gitlab.ProjectVariable
+	for _, vv := range vars {
+		if vv.Key == key && vv.EnvironmentScope == d.Get("environment_scope").(string) {
+			v = vv
+			break
+		}
+	}
+
+	if v == nil {
+		return fmt.Errorf("Variable %s/%s, scope:%s Not Found", project, key, d.Get("environment_scope").(string))
 	}
 
 	d.Set("key", v.Key)
@@ -111,9 +123,6 @@ func resourceGitlabProjectVariableRead(d *schema.ResourceData, meta interface{})
 	d.Set("project", project)
 	d.Set("protected", v.Protected)
 	d.Set("masked", v.Masked)
-	//For now I'm ignoring environment_scope when reading back data. (this can cause configuration drift so it is bad).
-	//However I'm unable to stop terraform from gratuitously updating this to values that are unacceptable by Gitlab)
-	//I don't have an enterprise license to properly test this either.
 	d.Set("environment_scope", v.EnvironmentScope)
 	return nil
 }
